@@ -1,0 +1,1 @@
+Question 3) – It takes the longest time because it waits for one process to finish completely and then starts the next one. Therefore, time taken would be 5×2 (PID 0) + 5 (PID 1) + 7 (PID 2) + 1 (termination) = 23 seconds, which is higher than the time taken in both the other processes.
