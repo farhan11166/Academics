@@ -5,10 +5,4 @@ int *pp=malloc(48);
 pp[0]=220606;
 printf("%d",pp[0]);
 return 0;
-
-
-
-
-
-
 }
