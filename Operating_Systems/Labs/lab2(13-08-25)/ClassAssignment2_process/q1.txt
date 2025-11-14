@@ -1,0 +1,12 @@
+The format followed by each process is as follows – a:b where a represents the number of instructions and b represents the percentage of those which are being done in the CPU. So we have:
+
+PID 0 – 2:0 → 2 instructions, both being I/O
+
+PID 1 – 5:100 → 5 instructions, all being CPU instructions
+
+PID 2 – 3:50 → 3 instructions where half of them are CPU instructions whereas the other half are I/O
+
+Question 1) – In the first process, as process 0 is only an I/O process, the process 0 starts and in parallel PID 1 starts as it only requires CPU. Then, as soon as PID 1 is over, the PID 2 process starts with the I/O process first, and at that point of time both PID 0 and PID 2 can run in parallel as both of them require I/O and not the CPU. As PID 1 gets over, PID 2 occupies the CPU as soon as the I/O is over. The time taken by the process would be as follows, assuming I/O waiting to be 4 seconds and CPU running to be 1 second.
+
+PID 0 will start and others would be on Ready. It will take one second on CPU and then go to I/O waiting for the I/O, which brings us to 5 seconds with 1 second on CPU and 4 on I/O. When PID 0 goes to I/O, PID 1 starts and completes 4 instructions, which bring us to 5 seconds on CPU and 4 on I/O. Now PID 0 occupies the CPU and other processes are stopped, therefore bringing CPU time to 6 and I/O to 4, total time being 6 till now. Then PID 0 again goes to I/O and finishes at 10 seconds, whereas PID 1 is completed by the 7th second, and then PID 2 starts by taking I/O first. By following this process the total time taken is 15 seconds, where CPU dominates because even when I/O is called, the CPU occupies 1 second during that too, and CPU processes cannot run in parallel like I/O processes.
+
