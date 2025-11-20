@@ -1,0 +1,146 @@
+CREATE THE edges TABLE (run once)
+
+This table stores all valid forward movements of trains.
+
+
+CREATE TABLE edges AS
+SELECT
+    s1.train AS train,
+    s1.station AS from_station,
+    s2.station AS to_station
+FROM schedule s1
+JOIN schedule s2
+    ON s1.train = s2.train
+    AND (
+        s1.depdate < s2.arrdate
+        OR (s1.depdate = s2.arrdate AND s1.dep < s2.arr)
+    );
+
+
+
+
+INDEXES CREATED:
+
+CREATE INDEX idx_train ON schedule(train);
+CREATE INDEX idx_station ON schedule(station);
+CREATE INDEX idx_station_time ON schedule(station, depdate, dep);
+
+CREATE INDEX idx_edges_from     ON edges(from_station);
+CREATE INDEX idx_edges_to       ON edges(to_station);
+CREATE INDEX idx_edges_train    ON edges(train);
+CREATE INDEX idx_edges_from_to  ON edges(from_station, to_station);
+
+
+
+DIRECT ROUTE QUERY:
+
+SELECT DISTINCT
+    e.from_station AS StationA,
+    e.to_station   AS StationB,
+    e.train        AS Train1,
+    NULL AS Change1,
+    NULL AS Train2,
+    NULL AS Change2,
+    NULL AS Train3
+FROM edges e
+JOIN terminus A ON A.station = e.from_station
+JOIN terminus B ON B.station = e.to_station;
+
+
+
+ONE CHANGE QUERY:
+
+SELECT DISTINCT
+    e1.from_station AS StationA,
+    e2.to_station   AS StationB,
+    e1.train        AS Train1,
+    e1.to_station   AS Change1,
+    e2.train        AS Train2,
+    NULL AS Change2,
+    NULL AS Train3
+FROM edges e1
+JOIN edges e2 
+    ON e2.from_station = e1.to_station
+JOIN terminus A ON A.station = e1.from_station
+JOIN terminus B ON B.station = e2.to_station
+WHERE e1.train <> e2.train
+  AND e1.to_station NOT IN (e1.from_station, e2.to_station);
+
+
+
+TWO CHANGE QUERY:
+
+SELECT DISTINCT
+    e1.from_station AS StationA,
+    e3.to_station   AS StationB,
+    e1.train        AS Train1,
+    e1.to_station   AS Change1,
+    e2.train        AS Train2,
+    e2.to_station   AS Change2,
+    e3.train        AS Train3
+FROM edges e1
+JOIN edges e2 
+    ON e2.from_station = e1.to_station
+JOIN edges e3
+    ON e3.from_station = e2.to_station
+JOIN terminus A ON A.station = e1.from_station
+JOIN terminus B ON B.station = e3.to_station
+WHERE 
+    -- trains distinct
+    e1.train <> e2.train
+    AND e2.train <> e3.train
+    AND e1.train <> e3.train
+
+    -- change stations distinct and not endpoints
+    AND e1.to_station NOT IN (e1.from_station, e3.to_station)
+    AND e2.to_station NOT IN (e1.from_station, e3.to_station, e1.to_station);
+
+
+
+THREE CHANGES QUERY:
+
+SELECT DISTINCT
+    e1.from_station AS StationA,
+    e4.to_station   AS StationB,
+
+    e1.train        AS Train1,
+    e1.to_station   AS Change1,
+
+    e2.train        AS Train2,
+    e2.to_station   AS Change2,
+
+    e3.train        AS Train3,
+    e3.to_station   AS Change3,
+
+    e4.train        AS Train4
+FROM edges e1
+JOIN edges e2
+    ON e2.from_station = e1.to_station      -- C → D
+JOIN edges e3
+    ON e3.from_station = e2.to_station      -- D → E
+JOIN edges e4
+    ON e4.from_station = e3.to_station      -- E → B
+
+-- start and end must be terminus stations
+JOIN terminus A ON A.station = e1.from_station
+JOIN terminus B ON B.station = e4.to_station
+
+WHERE
+    -- trains must be all different
+    e1.train <> e2.train
+    AND e2.train <> e3.train
+    AND e3.train <> e4.train
+    AND e1.train <> e3.train
+    AND e1.train <> e4.train
+    AND e2.train <> e4.train
+
+    -- change stations must be distinct and not endpoints
+    AND e1.to_station NOT IN (e1.from_station, e4.to_station)
+    AND e2.to_station NOT IN (e1.from_station, e4.to_station, e1.to_station)
+    AND e3.to_station NOT IN (e1.from_station, e4.to_station, e1.to_station, e2.to_station);
+
+
+WITH ALL THE ABOVE CHANGES 
+Direct => 0.19 sec
+1 Change takes => 12 secs
+2 Change takes => 3 min 7.09 secs
